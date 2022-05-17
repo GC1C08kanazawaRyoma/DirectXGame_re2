@@ -8,10 +8,7 @@
 
 GameScene::GameScene() {}
 
-GameScene::~GameScene() {
-	delete model_;
-	delete debugCamera_;
-}
+GameScene::~GameScene() {}
 
 void GameScene::Initialize() {
 
@@ -19,27 +16,9 @@ void GameScene::Initialize() {
 	input_ = Input::GetInstance();
 	audio_ = Audio::GetInstance();
 	debugText_ = DebugText::GetInstance();
-	// ファイル名を指定してテクスチャを読み込む
-	textureHandle_ = TextureManager::Load("カーリィです.png");
-	// 3Dモデルの生成
-	model_ = Model::Create();
-	// ワールドトランスフォームの初期化
-	worldTransform_.Initialize();
-	// ビュープロジェクションの初期化
-	viewProjection_.Initialize();
-	// デバッグカメラの生成
-	debugCamera_ = new DebugCamera(WinApp::kWindowWidth, WinApp::kWindowHeight);
-	// 軸方向表示を有効にする
-	AxisIndicator::GetInstance()->SetVisible(true);
-	// 軸方向表示が参照するビュープロジェクションを指定する(アドレス渡し)
-	AxisIndicator::GetInstance()->SetTargetViewProjection(&debugCamera_->GetViewProjection());
-	// ライン描画が参照するビュープロジェクションを指定する(アドレス渡し)
-	PrimitiveDrawer::GetInstance()->SetViewProjection(&debugCamera_->GetViewProjection());
 }
 
 void GameScene::Update() {
-	// デバッグカメラの更新
-	debugCamera_->Update();
 }
 
 void GameScene::Draw() {
@@ -68,23 +47,6 @@ void GameScene::Draw() {
 	/// <summary>
 	/// ここに3Dオブジェクトの描画処理を追加できる
 	/// </summary>
-	// 3Dモデル描画
-	model_->Draw(worldTransform_, debugCamera_->GetViewProjection(), textureHandle_);
-	// ライン描画が参照するビュープロジェクションを指定する(アドレス渡し)
-	for (int i = -10; i < 10; i++) {
-
-		PrimitiveDrawer::GetInstance()->DrawLine3d(
-			Vector3(-10, 0, 0 + i),
-			Vector3(9, 0, 0 + i),
-			Vector4(255, 0, 0, 255));
-	}
-	for (int i = -10; i < 10; i++) {
-
-		PrimitiveDrawer::GetInstance()->DrawLine3d(
-			Vector3(0 + i, 0, -10),
-			Vector3(0 + i, 0, 9),
-			Vector4(0, 0, 255, 255));
-	}
 
 	// 3Dオブジェクト描画後処理
 	Model::PostDraw();
