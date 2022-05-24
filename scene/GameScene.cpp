@@ -5,6 +5,9 @@
 #include "AxisIndicator.h"
 #include "PrimitiveDrawer.h"
 #include "Vector3.h"
+#include <random>
+
+using namespace std;
 
 GameScene::GameScene() {}
 
@@ -23,8 +26,6 @@ void GameScene::Initialize() {
 	textureHandle_ = TextureManager::Load("カーリィです.png");
 	// 3Dモデルの生成
 	model_ = Model::Create();
-	// ワールドトランスフォームの初期化
-	worldTransform_.Initialize();
 	// ビュープロジェクションの初期化
 	viewProjection_.Initialize();
 	// デバッグカメラの生成
@@ -36,85 +37,108 @@ void GameScene::Initialize() {
 	// ライン描画が参照するビュープロジェクションを指定する(アドレス渡し)
 	PrimitiveDrawer::GetInstance()->SetViewProjection(&debugCamera_->GetViewProjection());
 
-#pragma region スケーリング
-	// x,y,z 方向のスケーリングを設定
-	worldTransform_.scale_ = { 5,5,5 };
+	// ワールド変換行列
+	{
+//#pragma region スケーリング
+//		// x,y,z 方向のスケーリングを設定
+//		worldTransform_.scale_ = { 5,5,5 };
+//
+//		// スケーリング行列を宣言
+//		Matrix4 matScale;
+//		matScale.m[0][0] = worldTransform_.scale_.x;
+//		matScale.m[1][1] = worldTransform_.scale_.y;
+//		matScale.m[2][2] = worldTransform_.scale_.z;
+//		matScale.m[3][3] = 1;
+//#pragma endregion
+//
+//#pragma region 回転
+//		// x,y,z軸周りの回転角を設定
+//		worldTransform_.rotation_ = {
+//			MathUtility::PI / 4.0f,
+//			MathUtility::PI / 4.0f,
+//			0.0f };
+//
+//		// z軸回転行列を宣言
+//		Matrix4 matRotZ;
+//		matRotZ.m[0][0] = cosf(worldTransform_.rotation_.z);
+//		matRotZ.m[0][1] = sinf(worldTransform_.rotation_.z);
+//		matRotZ.m[1][0] = -sinf(worldTransform_.rotation_.z);
+//		matRotZ.m[1][1] = cosf(worldTransform_.rotation_.z);
+//		matRotZ.m[2][2] = 1;
+//		matRotZ.m[3][3] = 1;
+//
+//		// x軸回転行列を宣言
+//		Matrix4 matRotX;
+//		matRotX.m[0][0] = 1;
+//		matRotX.m[1][1] = cosf(worldTransform_.rotation_.x);
+//		matRotX.m[1][2] = sinf(worldTransform_.rotation_.x);
+//		matRotX.m[2][1] = -sinf(worldTransform_.rotation_.x);
+//		matRotX.m[2][2] = cosf(worldTransform_.rotation_.x);
+//		matRotX.m[3][3] = 1;
+//
+//		// y軸回転行列を宣言
+//		Matrix4 matRotY;
+//		matRotY.m[0][0] = cosf(worldTransform_.rotation_.y);
+//		matRotY.m[0][2] = -sinf(worldTransform_.rotation_.y);
+//		matRotY.m[1][1] = 1;
+//		matRotY.m[2][0] = sinf(worldTransform_.rotation_.y);
+//		matRotY.m[2][2] = cosf(worldTransform_.rotation_.y);
+//		matRotY.m[3][3] = 1;
+//#pragma endregion
+//
+//#pragma region 平行移動
+//		// x,y,z軸周りの平行移動を設定
+//		worldTransform_.translation_ = { 10,10,10 };
+//		// 平行移動行列を宣言
+//		Matrix4 matTrans = MathUtility::Matrix4Identity();
+//
+//		matTrans.m[0][0] = 1;
+//		matTrans.m[1][1] = 1;
+//		matTrans.m[2][2] = 1;
+//		matTrans.m[3][0] = worldTransform_.translation_.x;
+//		matTrans.m[3][1] = worldTransform_.translation_.y;
+//		matTrans.m[3][2] = worldTransform_.translation_.z;
+//		matTrans.m[3][3] = 1;
+//#pragma endregion
+//
+//		// 行列の合成
+//		worldTransform_.matWorld_ = Matrix4(
+//			1, 0, 0, 0,
+//			0, 1, 0, 0,
+//			0, 0, 1, 0,
+//			0, 0, 0, 1);
+//		// ワールド行列にスケーリング行列を掛け算して代入する
+//		worldTransform_.matWorld_ *= matScale;
+//		// ワールド行列にz軸回転行列を掛け算して代入
+//		worldTransform_.matWorld_ *= matRotZ;
+//		worldTransform_.matWorld_ *= matRotX;
+//		worldTransform_.matWorld_ *= matRotY;
+//		// ワールド行列に平行移動行列を掛け算して代入
+//		worldTransform_.matWorld_ *= matTrans;
+//
+//		// 行列の転送
+//		worldTransform_.TransferMatrix();
+	}
 
-	// スケーリング行列を宣言
-	Matrix4 matScale;
-	matScale.m[0][0] = worldTransform_.scale_.x;
-	matScale.m[1][1] = worldTransform_.scale_.y;
-	matScale.m[2][2] = worldTransform_.scale_.z;
-	matScale.m[3][3] = 1;
-#pragma endregion
+	// ビュー変換行列
+	{
+		// 乱数シード生成器
+		random_device seed_gen;
+		// メルセンヌ・ツイスターの乱数エンジン
+		mt19937_64 engine(seed_gen());
+		// 乱数範囲の設定(座標用)
+		uniform_real_distribution<float> posDist(-10.0f, 10.0f);
+		// 乱数範囲の設定(回転角用)
+		uniform_real_distribution<float> rotDist(0.0f, MathUtility::PI);
+		// 範囲forですべてのワールドトランスフォームを順に処理する
+		for (WorldTransform& worldtransform : worldTransforms_)
+		{
+			// ワールドトランスフォームの初期化
+			worldtransform.Initialize();
 
-#pragma region 回転
-	// x,y,z軸周りの回転角を設定
-	worldTransform_.rotation_ = {
-		MathUtility::PI / 4.0f,
-		MathUtility::PI / 4.0f,
-		0.0f };
 
-	// z軸回転行列を宣言
-	Matrix4 matRotZ;
-	matRotZ.m[0][0] = cosf(worldTransform_.rotation_.z);
-	matRotZ.m[0][1] = sinf(worldTransform_.rotation_.z);
-	matRotZ.m[1][0] = -sinf(worldTransform_.rotation_.z);
-	matRotZ.m[1][1] = cosf(worldTransform_.rotation_.z);
-	matRotZ.m[2][2] = 1;
-	matRotZ.m[3][3] = 1;
-
-	// x軸回転行列を宣言
-	Matrix4 matRotX;
-	matRotX.m[0][0] = 1;
-	matRotX.m[1][1] = cosf(worldTransform_.rotation_.x);
-	matRotX.m[1][2] = sinf(worldTransform_.rotation_.x);
-	matRotX.m[2][1] = -sinf(worldTransform_.rotation_.x);
-	matRotX.m[2][2] = cosf(worldTransform_.rotation_.x);
-	matRotX.m[3][3] = 1;
-
-	// y軸回転行列を宣言
-	Matrix4 matRotY;
-	matRotY.m[0][0] = cosf(worldTransform_.rotation_.y);
-	matRotY.m[0][2] = -sinf(worldTransform_.rotation_.y);
-	matRotY.m[1][1] = 1;
-	matRotY.m[2][0] = sinf(worldTransform_.rotation_.y);
-	matRotY.m[2][2] = cosf(worldTransform_.rotation_.y);
-	matRotY.m[3][3] = 1;
-#pragma endregion
-
-#pragma region 平行移動
-	// x,y,z軸周りの平行移動を設定
-	worldTransform_.translation_ = { 10,10,10 };
-	// 平行移動行列を宣言
-	Matrix4 matTrans = MathUtility::Matrix4Identity();
-
-	matTrans.m[0][0] = 1;
-	matTrans.m[1][1] = 1;
-	matTrans.m[2][2] = 1;
-	matTrans.m[3][0] = worldTransform_.translation_.x;
-	matTrans.m[3][1] = worldTransform_.translation_.y;
-	matTrans.m[3][2] = worldTransform_.translation_.z;
-	matTrans.m[3][3] = 1;
-#pragma endregion
-
-	// 行列の合成
-	worldTransform_.matWorld_ = Matrix4(
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1);
-	// ワールド行列にスケーリング行列を掛け算して代入する
-	worldTransform_.matWorld_ *= matScale;
-	// ワールド行列にz軸回転行列を掛け算して代入
-	worldTransform_.matWorld_ *= matRotZ;
-	worldTransform_.matWorld_ *= matRotX;
-	worldTransform_.matWorld_ *= matRotY;
-	// ワールド行列に平行移動行列を掛け算して代入
-	worldTransform_.matWorld_ *= matTrans;
-
-	// 行列の転送
-	worldTransform_.TransferMatrix();
+		}
+	}
 }
 
 void GameScene::Update() {
@@ -149,7 +173,7 @@ void GameScene::Draw() {
 	/// ここに3Dオブジェクトの描画処理を追加できる
 	/// </summary>
 	// 3Dモデル描画
-	model_->Draw(worldTransform_, debugCamera_->GetViewProjection(), textureHandle_);
+	model_->Draw(worldTransforms_, debugCamera_->GetViewProjection(), textureHandle_);
 	// ライン描画が参照するビュープロジェクションを指定する(アドレス渡し)
 	//for (int i = -10; i < 10; i++) {
 
